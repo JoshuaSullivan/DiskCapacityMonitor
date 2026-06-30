@@ -22,12 +22,37 @@ final class SettingsViewModel: ObservableObject {
         didSet { settings.simulatorSizeThresholdBytes = Int64(simulatorThresholdMB * 1_000_000); onChange?() }
     }
 
+    /// Reflects the real `SMAppService` login-item state. Toggling registers/unregisters
+    /// the login item; failures revert the toggle and surface a message.
+    @Published var launchAtLogin: Bool {
+        didSet {
+            guard !isSyncingLaunchAtLogin else { return }
+            applyLaunchAtLogin(launchAtLogin)
+        }
+    }
+    @Published var launchAtLoginMessage: String?
+    private var isSyncingLaunchAtLogin = false
+
     init() {
         let settings = UserSettings.shared
         refreshInterval = settings.refreshInterval
         useBinaryUnits = settings.useBinaryUnits
         lowSpacePercent = settings.lowSpaceThresholdFraction * 100.0
         simulatorThresholdMB = Double(settings.simulatorSizeThresholdBytes) / 1_000_000
+        launchAtLogin = LoginItemManager.isEnabled
+    }
+
+    private func applyLaunchAtLogin(_ enabled: Bool) {
+        do {
+            try LoginItemManager.setEnabled(enabled)
+            launchAtLoginMessage = nil
+        } catch {
+            launchAtLoginMessage = "Couldn't \(enabled ? "enable" : "disable") launch at login: \(error.localizedDescription)"
+            // Revert the toggle to the actual state without re-triggering the side effect.
+            isSyncingLaunchAtLogin = true
+            launchAtLogin = LoginItemManager.isEnabled
+            isSyncingLaunchAtLogin = false
+        }
     }
 }
 
@@ -58,8 +83,17 @@ struct SettingsView: View {
                     Text("Hide sims smaller than \(Int(viewModel.simulatorThresholdMB)) MB")
                 }
             }
+
+            Section("Startup") {
+                Toggle("Launch at login", isOn: $viewModel.launchAtLogin)
+                if let message = viewModel.launchAtLoginMessage {
+                    Text(message)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
         }
         .formStyle(.grouped)
-        .frame(width: 420, height: 320)
+        .frame(width: 420, height: 380)
     }
 }
