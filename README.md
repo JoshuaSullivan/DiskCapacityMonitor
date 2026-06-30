@@ -36,9 +36,9 @@ offers one-click cleanup shortcuts useful on a developer machine.
 Requires macOS 14+ and a recent Swift toolchain.
 
 ```sh
-swift build            # compile
-swift test             # run unit tests
-swift run DiskCapacityMonitor   # launch (appears in the menu bar; no Dock icon)
+swift build   # compile
+swift test    # run unit tests
+swift run     # launch (appears in the menu bar; no Dock icon)
 ```
 
 The app runs as an accessory (no Dock icon, no main window); quit it from the menu's
